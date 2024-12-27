@@ -8,17 +8,18 @@
 # Battery device path
 base_dev=/sys/class/power_supply/BAT0
 
-# default values
+# Default values
 start_flag=false
 stop_flag=false
 start_value=0  # Default to 0 if no value is passed.
 stop_value=0  # Default to 0 if no value is passed
 
+# Handy date/time function
 dateTime(){
  date "+%Y-%m-%d %H:%M:%S"
 }
 
-# Function to handle start action
+# Handle start action
 start_action() {
   if [[ "$start_flag" == true ]]; then
     echo "$(dateTime) INFO Setting minimum battery level $start_value (before the battery accepts a charge)"
@@ -30,7 +31,7 @@ start_action() {
   fi
 }
 
-# Function to handle stop action
+# Handle stop action
 stop_action() {
   if [[ "$stop_flag" == true ]]; then
     echo "$(dateTime) INFO Setting maximum battery level $stop_value (before the battery stops accepting a charge)"
@@ -42,41 +43,55 @@ stop_action() {
   fi
 }
 
+# Designated usage
 usage(){
 echo "Set Battery Charge levels ; recommend stop level be set to 80"
 echo "Usage: $0 [--start <percent_level>] [--stop <percent_level>]"
 exit 1
 }
 
+# Verify intended action
 confirm_action(){
   if [ $1 == "start_action" ] ; then
+
     read_start_value=`cat $base_dev/charge_control_start_threshold`
+
     if [ $read_start_value -eq $2 ] ; then
       echo "$(dateTime) INFO Confirmed $base_dev/charge_control_start_threshold reports $read_start_value ; success setting value" 
      else
       echo "$(dateTime) ERROR Failed setting $base_dev/charge_control_start_threshold to $2 ; kernel driver issue? ; exiting."
       exit 1
     fi
+
    elif [ $1 == "stop_action" ] ; then
+
     read_stop_value=`cat $base_dev/charge_control_end_threshold`
+
     if [ $read_stop_value -eq $2 ] ; then
       echo "$(dateTime) INFO Confirmed $base_dev/charge_control_end_threshold reports $read_stop_value ; success setting value"
      else
       echo "$(dateTime) ERROR Failed setting $base_dev/charge_control_end_threshold to $2 ; kernel driver issue? ; exiting."
       exit 1
     fi
+
    else
+
     echo "$(dateTime) CRITICAL Internal error ; $1 is not registered in confirm_action() ; exiting."
     exit 1
+
   fi
 
 }
 
-if [ ! -d $base_dev ] ; then 
+# Program starts ; verify sys path is correct
+if [ ! -d $base_dev ] ; then
+
   echo "Battery $base_dev is not found.  Please make sure your battery is actively detected by your machine."
   echo "Set \$base_dev in the script after identifying the battery's system path."
   exit 1
+
  else
+
   if [ -e $base_dev/charge_control_start_threshold ] && [ -e $base_dev/charge_control_end_threshold ] ; then 
     echo "$(dateTime) INFO Using $base_dev"
    else
@@ -121,7 +136,7 @@ while [[ "$#" -gt 0 ]]; do
   esac
 done
 
-# dictate usage
+# dictate usage if no flags given
 if [ "$start_flag" = false ] && [ "$stop_flag" = false ]; then
     usage
 fi
